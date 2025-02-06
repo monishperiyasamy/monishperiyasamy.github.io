@@ -61,3 +61,7 @@ class Main
         }
     }
 }
+
+/*
+Use the above for printing the subArray . In pdf Start variable is not updated properly
+    */
