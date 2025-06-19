@@ -1,0 +1,83 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
+import ProjectCard from "../components/ProjectCard";
+import "../styles/DashboardWithProjects.css";
+
+interface Project {
+  projectId: number;
+  title: string;
+  description: string;
+}
+
+export default function DashboardWithProjects() {
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+
+  const apiURL =
+    role === "admin"
+      ? "http://localhost:5000/api/admin/projects"
+      : "http://localhost:5000/api/user/projects";
+
+  const fetchProjects = async () => {
+    const res = await axios.get(apiURL, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setProjects(res.data.body); // <--- Important: response.body
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [apiURL]);
+
+  return (
+    <div className="dashboard-container">
+      <h2>Welcome {role === "admin" ? "Admin" : "User"}!</h2>
+
+      {role === "admin" && (
+        <div className="admin-buttons">
+          <button className="admin-btn">+ Create Project</button>
+          <button className="admin-btn">✏️ Update Project</button>
+        </div>
+      )}
+
+      <div className="dashboard-header">
+        <h2 className="dashboard-title">📋 Project List</h2>
+      </div>
+
+      <div className="projects-grid">
+        {projects.map((project) => (
+          <ProjectCard key={project.projectId} project={project} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
+
+import { Link } from "react-router-dom";
+import "../styles/ProjectCard.css";
+
+interface Project {
+  projectId: number;
+  title: string;
+  description: string;
+}
+
+export default function ProjectCard({ project }: { project: Project }) {
+  return (
+    <div className="project-card">
+      <h3 className="project-title">{project.title}</h3>
+      <p className="project-description">{project.description}</p>
+      <Link to={`/project/${project.projectId}`} className="view-link">
+        👉 View Project
+      </Link>
+    </div>
+  );
+}
