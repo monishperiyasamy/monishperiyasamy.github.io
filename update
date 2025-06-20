@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
-import ProjectCard from "../components/ProjectCard";
-import "../styles/DashboardWithProjects.css";
+import "../styles/DashboardWithProjects.css"; // reuse container
 
 interface Project {
   projectId: number;
@@ -9,75 +9,61 @@ interface Project {
   description: string;
 }
 
-export default function DashboardWithProjects() {
-  const [projects, setProjects] = useState<Project[]>([]);
+interface Member {
+  userId: number;
+  userName: string;
+  email: string;
+  role: string; // added role
+}
 
+export default function ProjectDetails() {
+  const { id } = useParams();
+  const [project, setProject] = useState<Project | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
   const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
-
-  const apiURL =
-    role === "admin"
-      ? "http://localhost:5000/api/admin/projects"
-      : "http://localhost:5000/api/user/projects";
-
-  const fetchProjects = async () => {
-    const res = await axios.get(apiURL, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setProjects(res.data.body); // <--- Important: response.body
-  };
 
   useEffect(() => {
-    fetchProjects();
-  }, [apiURL]);
+    const fetchDetails = async () => {
+      try {
+        const projRes = await axios.get(`http://localhost:3001/project/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setProject(projRes.data.body[0]);
+
+        const memberRes = await axios.get(
+          `http://localhost:3001/project/${id}/members`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setMembers(memberRes.data.members);
+      } catch (err) {
+        console.error("Error loading project details:", err);
+      }
+    };
+    fetchDetails();
+  }, [id, token]);
+
+  if (!project) return <p>Loading project...</p>;
 
   return (
     <div className="dashboard-container">
-      <h2>Welcome {role === "admin" ? "Admin" : "User"}!</h2>
+      <h2>{project.title}</h2>
+      <p>{project.description}</p>
 
-      {role === "admin" && (
-        <div className="admin-buttons">
-          <button className="admin-btn">+ Create Project</button>
-          <button className="admin-btn">✏️ Update Project</button>
-        </div>
+      <h3>Project Members</h3>
+      {members.length > 0 ? (
+        <ul>
+          {members.map((member) => (
+            <li key={member.userId}>
+              {member.userName} ({member.email}) — <strong>{member.role}</strong>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No members assigned to this project yet.</p>
       )}
-
-      <div className="dashboard-header">
-        <h2 className="dashboard-title">📋 Project List</h2>
-      </div>
-
-      <div className="projects-grid">
-        {projects.map((project) => (
-          <ProjectCard key={project.projectId} project={project} />
-        ))}
-      </div>
     </div>
   );
 }
 
-
-
-
-
-
-
-import { Link } from "react-router-dom";
-import "../styles/ProjectCard.css";
-
-interface Project {
-  projectId: number;
-  title: string;
-  description: string;
-}
-
-export default function ProjectCard({ project }: { project: Project }) {
-  return (
-    <div className="project-card">
-      <h3 className="project-title">{project.title}</h3>
-      <p className="project-description">{project.description}</p>
-      <Link to={`/project/${project.projectId}`} className="view-link">
-        👉 View Project
-      </Link>
-    </div>
-  );
-}
